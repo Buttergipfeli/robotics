@@ -1,0 +1,8 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+MUJOCO_LOG.TXT
+.claude/
+lerobot/SO-ARM100/

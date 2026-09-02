@@ -1,0 +1,16 @@
+<mujoco model="so101_pushmat">
+  <include file="../SO-ARM100/Simulation/SO101/so101_new_calib.xml"/>
+  <compiler meshdir="../SO-ARM100/Simulation/SO101/assets"/>
+
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1"/>
+    <geom name="floor" type="plane" size="1 1 0.05" pos="0 0 -0.012" rgba="0.9 0.9 0.9 1"/>
+    <geom name="platform" type="box" size="0.0835 0.1185 0.006" pos="0.0531 0 -0.006" rgba="0.8 0.8 0.8 1"/>
+
+    <body name="cork_mat" pos="0.2616 0 -0.0105">
+      <geom type="box" size="0.125 0.15 0.0015"
+            rgba="0.72 0.55 0.35 1" friction="0.35 0.005 0.0001"/>
+    </body>
+  </worldbody>
+</mujoco>
+
