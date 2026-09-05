@@ -23,6 +23,12 @@ class So101PickBallEnv:
     def launch(self):
         mujoco.viewer.launch(self.model, self.data)
 
+    def step(self, action):
+        self.data.ctrl[:] = action
+        for _ in range(self.n_substeps):
+            mujoco.mj_step(self.model, self.data)
+        self.t += 1
+
     def reset(self):
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
         self.data.time = 0.0
