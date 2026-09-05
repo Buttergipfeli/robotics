@@ -20,6 +20,10 @@ class ScriptedExpert:
     RELEASE_POS_TOL = 0.01
     MAX_RETRIES = 2
 
+    SCAN_QPOS = (0.0, -1.2, 0.4, 1.6, -1.571)
+    SCAN_HOLD = 5
+    SCAN_TOL = 0.08
+
     POS_TOL = 0.015
     MAX_DELTA = 0.12
     MAX_DELTA_FINE = 0.05
@@ -49,7 +53,7 @@ class ScriptedExpert:
         self.reset()
 
     def reset(self):
-        self.phase = "raise"
+        self.phase = "scan_ball"
         self.phase_ticks = 0
         self.wait = 0
         self.failed = False
@@ -74,11 +78,14 @@ class ScriptedExpert:
         if self.phase_ticks > self.PHASE_TIMEOUT:
             self.failed = True
 
-        if self.phase == "raise":
-            target = np.array([0.20, 0.0, 0.20])
-            gripper = self.GRIPPER_OPEN
-            if tcp[2] > 0.17:
-                self._next("approach")
+        arm_target = None
+        if self.phase in ("scan_ball", "scan_roll"):
+            arm_target = np.array(self.SCAN_QPOS)
+            gripper = self.GRIPPER_OPEN if self.phase == "scan_ball" else self.GRIPPER_CLOSED
+            if np.max(np.abs(env.data.qpos[:5] - arm_target)) < self.SCAN_TOL:
+                self.wait += 1
+                if self.wait >= self.SCAN_HOLD:
+                    self._next("approach" if self.phase == "scan_ball" else "move")
         elif self.phase == "approach":
             target = np.array([ball[0], ball[1], ball[2] + self.HOVER_HEIGHT])
             gripper = self.GRIPPER_OPEN
@@ -127,7 +134,7 @@ class ScriptedExpert:
             target = np.array([self.grasp_target[0], self.grasp_target[1], self.LIFT_TCP_Z])
             gripper = self.GRIPPER_CLOSED
             if ball[2] > 0.12:
-                self._next("move")
+                self._next("scan_roll")
             elif self.phase_ticks > 15 and ball[2] < 0.06:
                 self.failed = True
         elif self.phase == "move":
@@ -142,7 +149,8 @@ class ScriptedExpert:
             gripper = self.GRIPPER_OPEN
             self.wait += 1
 
-        arm_target = self._ik(target)
+        if arm_target is None:
+            arm_target = self._ik(target)
         full_target = np.append(arm_target, gripper)
         max_delta = self.MAX_DELTA_FINE if self.phase in self.FINE_PHASES else self.MAX_DELTA
         delta = np.clip(full_target - self.cmd, -max_delta, max_delta)
