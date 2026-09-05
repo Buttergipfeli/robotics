@@ -19,6 +19,7 @@ class So101PickBallEnv:
         self.data = mujoco.MjData(self.model)
         self.rng = np.random.default_rng(seed)
         self.n_substeps = int(1 / (self.CONTROL_HZ * self.model.opt.timestep))
+        self.renderer = mujoco.Renderer(self.model, height=480, width=640)
 
     def launch(self):
         mujoco.viewer.launch(self.model, self.data)
@@ -28,6 +29,13 @@ class So101PickBallEnv:
         for _ in range(self.n_substeps):
             mujoco.mj_step(self.model, self.data)
         self.t += 1
+        return self.get_observation()
+
+    def get_observation(self):
+        self.renderer.update_scene(self.data, camera="wrist")
+        image = self.renderer.render()
+        joints = self.data.qpos[:6].copy()
+        return {"image": image, "state": joints}
 
     def reset(self):
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
@@ -60,3 +68,4 @@ class So101PickBallEnv:
         self.data.qpos[9:13] = [1, 0, 0, 0]
 
         mujoco.mj_forward(self.model, self.data)
+        return self.get_observation()

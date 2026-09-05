@@ -8,7 +8,7 @@ from sim_env import So101PickBallEnv
 
 SIM_DIR = Path(__file__).parent
 SHOW_CAMERA = False
-REST_QPOS = [0.0, -1.746, 1.586, 1.219, -1.571, 0.0]
+REST_QPOS = [0.0, -1.746, 1.586, 1.219, -1.571, -0.174]
 
 def build_model():
     spec = mujoco.MjSpec.from_file(str(SIM_DIR / "my_scene.xml"))
