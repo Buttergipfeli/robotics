@@ -17,7 +17,9 @@ class ScriptedExpert:
     GRASP_TCP_OFFSET_Z = -0.008
     LIFT_TCP_Z = 0.20
     RELEASE_CLEARANCE = -0.005
-    RELEASE_POS_TOL = 0.01
+    RELEASE_POS_TOL = 0.008
+    PRECISION_PHASES = ("move", "release")
+    PRECISION_NOISE_SCALE = 0.4
     MAX_RETRIES = 3
 
     SCAN_QPOS = (0.0, -1.2, 0.4, 1.6, -1.571)
@@ -60,6 +62,7 @@ class ScriptedExpert:
         self.cmd = None
         self.grasp_target = None
         self.release_target = None
+        self.retreat_target = None
         self.retries = 0
         self.best_dist = np.inf
         self.stall = 0
@@ -144,10 +147,26 @@ class ScriptedExpert:
             if np.linalg.norm(ball[:2] - desired_ball[:2]) < self.RELEASE_POS_TOL:
                 self.release_target = tcp + (desired_ball - ball)
                 self._next("release")
-        else:
+        elif self.phase == "release":
             target = self.release_target
             gripper = self.GRIPPER_OPEN
             self.wait += 1
+            if self.wait >= self.RELEASE_WAIT:
+                rot = env.data.xmat[self.grip_body_id].reshape(3, 3)
+                jaw_dir = rot[:2, 0] / (np.linalg.norm(rot[:2, 0]) + 1e-9)
+                self.retreat_target = self.release_target + np.array(
+                    [-jaw_dir[0] * 0.06, -jaw_dir[1] * 0.06, 0.01]
+                )
+                self._next("retreat")
+        elif self.phase == "retreat":
+            target = self.retreat_target
+            gripper = self.GRIPPER_OPEN
+            if np.linalg.norm(tcp - target) < 0.02:
+                self.retreat_target = self.retreat_target + np.array([0, 0, 0.10])
+                self._next("retreat_up")
+        else:
+            target = self.retreat_target
+            gripper = self.GRIPPER_OPEN
 
         if arm_target is None:
             arm_target = self._ik(target)
@@ -162,12 +181,15 @@ class ScriptedExpert:
         self.cmd = self.cmd + delta
 
         action = env.rad_to_norm(self.cmd)
-        noise = self.rng.normal(0, self.noise_std, 6)
+        noise_std = self.noise_std
+        if self.phase in self.PRECISION_PHASES:
+            noise_std *= self.PRECISION_NOISE_SCALE
+        noise = self.rng.normal(0, noise_std, 6)
         noise[self.GRIPPER_IDX] = 0
         return action + noise
 
     def done(self):
-        return self.phase == "release" and self.wait >= self.RELEASE_WAIT
+        return self.phase in ("retreat", "retreat_up")
 
     def _next(self, phase):
         self.phase = phase

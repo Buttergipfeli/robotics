@@ -31,6 +31,7 @@ class So101PickBallEnv:
 
     SUCCESS_MAX_HORIZONTAL_DIST = 0.015
     SUCCESS_MAX_SPEED = 0.05
+    SUCCESS_HOLD_TICKS = 10
     BALL_LOST_MAX_Z = 0.05
 
     GRIPPER_IDX = 5
@@ -69,7 +70,11 @@ class So101PickBallEnv:
         self.t += 1
 
         obs = self.get_observation()
-        success = self.is_success()
+        if self.is_success():
+            self.success_streak += 1
+        else:
+            self.success_streak = 0
+        success = self.success_streak >= self.SUCCESS_HOLD_TICKS
         timeout = self.t >= self.max_steps
         ball_lost = self.is_ball_lost()
         done = success or timeout or ball_lost
@@ -124,6 +129,7 @@ class So101PickBallEnv:
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
         self.data.time = 0.0
         self.t = 0
+        self.success_streak = 0
 
         margin = self.ROLL_RADIUS + self.MAT_EDGE_MARGIN
         while True:
