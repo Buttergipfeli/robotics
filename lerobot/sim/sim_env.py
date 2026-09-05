@@ -33,4 +33,16 @@ class So101PickBallEnv:
             [self.MAT_X[1] - margin, self.MAT_Y[1] - margin],
         )
         self.model.body("toilet_roll").pos[:2] = roll_xy
-        #return self.get_observation()
+
+        while True:
+            ball_xy = self.rng.uniform(
+                [self.MAT_X[0] + self.BALL_RADIUS, self.MAT_Y[0] + self.BALL_RADIUS],
+                [self.MAT_X[1] - self.BALL_RADIUS, self.MAT_Y[1] - self.BALL_RADIUS],
+            )
+            if np.linalg.norm(ball_xy - roll_xy) >= self.MIN_BALL_ROLL_DIST:
+                break
+            
+        self.data.qpos[6:9] = [*ball_xy, self.BALL_Z]
+        self.data.qpos[9:13] = [1, 0, 0, 0]
+
+        mujoco.mj_forward(self.model, self.data)
