@@ -33,6 +33,8 @@ class So101PickBallEnv:
     SUCCESS_MAX_SPEED = 0.05
     BALL_LOST_MAX_Z = 0.05
 
+    GRIPPER_IDX = 5
+
     def __init__(self, model, seed=None):
         self.model = model
         self.data = mujoco.MjData(self.model)
@@ -41,11 +43,15 @@ class So101PickBallEnv:
         self.max_steps = self.CONTROL_HZ * self.EPISODE_SECONDS
         self.renderer = mujoco.Renderer(self.model, height=self.CAM_HEIGHT, width=self.CAM_WIDTH)
 
+        ranges = np.array([self.model.joint(i).range for i in range(6)])
+        self.joint_mid = (ranges[:, 0] + ranges[:, 1]) / 2
+        self.joint_half = (ranges[:, 1] - ranges[:, 0]) / 2
+
     def launch(self):
         mujoco.viewer.launch(self.model, self.data)
 
     def step(self, action):
-        self.data.ctrl[:] = action
+        self.data.ctrl[:] = self.norm_to_rad(action)
         for _ in range(self.n_substeps):
             mujoco.mj_step(self.model, self.data)
         self.t += 1
@@ -77,7 +83,7 @@ class So101PickBallEnv:
     def get_observation(self):
         self.renderer.update_scene(self.data, camera="wrist")
         image = self.renderer.render()
-        joints = self.data.qpos[self.ARM_QPOS].copy()
+        joints = self.rad_to_norm(self.data.qpos[self.ARM_QPOS])
         return {"image": image, "state": joints}
 
     def reset(self):
@@ -111,3 +117,17 @@ class So101PickBallEnv:
 
         mujoco.mj_forward(self.model, self.data)
         return self.get_observation()
+
+    def rad_to_norm(self, rad):
+        rad = np.asarray(rad, dtype=np.float64)
+        norm = (rad - self.joint_mid) / self.joint_half * 100.0
+        gripper_lo = self.joint_mid[self.GRIPPER_IDX] - self.joint_half[self.GRIPPER_IDX]
+        norm[self.GRIPPER_IDX] = (rad[self.GRIPPER_IDX] - gripper_lo) / (2 * self.joint_half[self.GRIPPER_IDX]) * 100.0
+        return norm
+
+    def norm_to_rad(self, norm):
+        norm = np.asarray(norm, dtype=np.float64)
+        rad = self.joint_mid + norm / 100.0 * self.joint_half
+        gripper_lo = self.joint_mid[self.GRIPPER_IDX] - self.joint_half[self.GRIPPER_IDX]
+        rad[self.GRIPPER_IDX] = gripper_lo + norm[self.GRIPPER_IDX] / 100.0 * (2 * self.joint_half[self.GRIPPER_IDX])
+        return rad
