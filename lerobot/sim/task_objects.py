@@ -20,7 +20,9 @@ class StressBall:
             size=[self.diameter / 2, 0, 0],
             mass=self.mass,
             rgba=list(self.rgba),
-            condim=4,
+            condim=6,
+            friction=[2.0, 0.05, 0.005],
+            solref=[0.04, 1.0],
         )
 
     def qpos0(self):

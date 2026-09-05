@@ -16,6 +16,13 @@ def build_model():
     ball = StressBall()
     ball.attach(spec)
     ToiletRoll().attach(spec)
+    weld = spec.add_equality()
+    weld.name = "grasp_assist"
+    weld.type = mujoco.mjtEq.mjEQ_WELD
+    weld.objtype = mujoco.mjtObj.mjOBJ_BODY
+    weld.name1 = "gripper"
+    weld.name2 = "stress_ball"
+    weld.active = False
     spec.add_key(name="rest", qpos=REST_QPOS + ball.qpos0(), ctrl=REST_QPOS)
     return spec.compile()
 
