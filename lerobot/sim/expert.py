@@ -17,8 +17,9 @@ class ScriptedExpert:
     GRASP_TCP_OFFSET_Z = -0.008
     LIFT_TCP_Z = 0.20
     RELEASE_CLEARANCE = -0.005
+    TRANSIT_CLEARANCE = 0.04
     RELEASE_POS_TOL = 0.008
-    PRECISION_PHASES = ("move", "release")
+    PRECISION_PHASES = ("move", "lower", "release")
     PRECISION_NOISE_SCALE = 0.4
     MAX_RETRIES = 3
 
@@ -141,10 +142,22 @@ class ScriptedExpert:
             elif self.phase_ticks > 15 and ball[2] < 0.06:
                 self.failed = True
         elif self.phase == "move":
+            desired_ball = np.array([roll[0], roll[1], roll_top_z + env.BALL_RADIUS + self.TRANSIT_CLEARANCE])
+            target = tcp + (desired_ball - ball)
+            gripper = self.GRIPPER_CLOSED
+            if (
+                np.linalg.norm(ball[:2] - desired_ball[:2]) < self.RELEASE_POS_TOL
+                and ball[2] > desired_ball[2] - 0.01
+            ):
+                self._next("lower")
+        elif self.phase == "lower":
             desired_ball = np.array([roll[0], roll[1], roll_top_z + env.BALL_RADIUS + self.RELEASE_CLEARANCE])
             target = tcp + (desired_ball - ball)
             gripper = self.GRIPPER_CLOSED
-            if np.linalg.norm(ball[:2] - desired_ball[:2]) < self.RELEASE_POS_TOL:
+            if (
+                abs(ball[2] - desired_ball[2]) < 0.005
+                and np.linalg.norm(ball[:2] - desired_ball[:2]) < self.RELEASE_POS_TOL
+            ):
                 self.release_target = tcp + (desired_ball - ball)
                 self._next("release")
         elif self.phase == "release":
