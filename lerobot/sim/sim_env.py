@@ -36,9 +36,10 @@ class So101PickBallEnv:
     GRIPPER_IDX = 5
 
     GRASP_ASSIST_RADIUS = 0.05
-    GRIP_CLOSE_CTRL = 0.7
-    GRIP_OPEN_CTRL = 0.9
+    GRIP_CLOSE_CTRL = 0.9
+    GRIP_OPEN_CTRL = 1.0
     TCP_SITE = "gripperframe"
+    BALL_HOLD_POS = (0.020, 0.0, -0.090)
 
     def __init__(self, model, seed=None):
         self.model = model
@@ -92,24 +93,19 @@ class So101PickBallEnv:
         active = bool(self.data.eq_active[self.grasp_eq_id])
         grip_cmd = self.data.ctrl[self.GRIPPER_IDX]
         if not active and grip_cmd < self.GRIP_CLOSE_CTRL:
-            tcp = self.data.site_xpos[self.tcp_site_id]
+            grip_rot = self.data.xmat[self.grip_body_id].reshape(3, 3)
+            hold_world = self.data.xpos[self.grip_body_id] + grip_rot @ np.array(self.BALL_HOLD_POS)
             ball = self.data.qpos[self.BALL_POS]
-            if np.linalg.norm(ball - tcp) < self.GRASP_ASSIST_RADIUS:
+            if np.linalg.norm(ball - hold_world) < self.GRASP_ASSIST_RADIUS:
                 self._activate_grasp_weld()
         elif active and grip_cmd > self.GRIP_OPEN_CTRL:
             self.data.eq_active[self.grasp_eq_id] = 0
 
     def _activate_grasp_weld(self):
-        grip_rot = self.data.xmat[self.grip_body_id].reshape(3, 3)
-        rel_pos = grip_rot.T @ (self.data.xpos[self.ball_body_id] - self.data.xpos[self.grip_body_id])
-        grip_quat = self.data.xquat[self.grip_body_id]
-        grip_quat_inv = np.array([grip_quat[0], -grip_quat[1], -grip_quat[2], -grip_quat[3]])
-        rel_quat = np.zeros(4)
-        mujoco.mju_mulQuat(rel_quat, grip_quat_inv, self.data.xquat[self.ball_body_id])
         eq_data = self.model.eq_data[self.grasp_eq_id]
         eq_data[:] = 0
-        eq_data[3:6] = rel_pos
-        eq_data[6:10] = rel_quat
+        eq_data[3:6] = self.BALL_HOLD_POS
+        eq_data[6:10] = [1, 0, 0, 0]
         eq_data[10] = 1.0
         self.data.eq_active[self.grasp_eq_id] = 1
 

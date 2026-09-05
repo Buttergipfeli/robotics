@@ -11,14 +11,14 @@ class ScriptedExpert:
     GRIPPER_IDX = 5
 
     GRIPPER_OPEN = 1.3
-    GRIPPER_CLOSED = -0.05
+    GRIPPER_CLOSED = 0.5
 
     HOVER_HEIGHT = 0.10
-    GRASP_TCP_OFFSET_Z = 0.005
+    GRASP_TCP_OFFSET_Z = -0.008
     LIFT_TCP_Z = 0.20
-    RELEASE_CLEARANCE = 0.025
+    RELEASE_CLEARANCE = -0.005
     RELEASE_POS_TOL = 0.01
-    MAX_RETRIES = 2
+    MAX_RETRIES = 3
 
     SCAN_QPOS = (0.0, -1.2, 0.4, 1.6, -1.571)
     SCAN_HOLD = 5
@@ -31,7 +31,7 @@ class ScriptedExpert:
     PHASE_TIMEOUT = 60
     GRASP_WAIT = 10
     GRIPPER_MAX_DELTA = 0.15
-    GRASP_LATERAL_OFFSET = -0.02
+    GRASP_LATERAL_OFFSET = -0.028
     RELEASE_WAIT = 6
 
     AXIS_LEN = 0.08
@@ -102,7 +102,7 @@ class ScriptedExpert:
             target = self.grasp_target
             gripper = self.GRIPPER_OPEN
             dist = np.linalg.norm(tcp - target)
-            if dist < self.POS_TOL:
+            if dist < self.POS_TOL or np.linalg.norm(tcp - ball) < 0.04:
                 self._next("grasp")
             else:
                 if dist < self.best_dist - 0.002:
