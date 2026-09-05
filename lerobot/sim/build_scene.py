@@ -21,4 +21,5 @@ def build_model():
 
 if __name__ == "__main__":
     env = So101PickBallEnv(build_model())
+    env.reset()
     env.launch()
