@@ -100,8 +100,6 @@ class WristCamera:
             size=[self.plate_size / 2, self.mount_height / 2, self.plate_thickness / 2],
             pos=[0, self.wrist_surface_y + self.mount_height / 2, self.mount_hole_front_z],
             rgba=[0.1, 0.1, 0.1, 1],
-            contype=0,
-            conaffinity=0,
         )
         gripper.add_geom(
             name="wrist_cam_plate",
@@ -110,8 +108,6 @@ class WristCamera:
             pos=plate_pos,
             quat=quat,
             rgba=[0.1, 0.1, 0.1, 1],
-            contype=0,
-            conaffinity=0,
         )
         gripper.add_geom(
             name="wrist_cam_lens",
@@ -120,6 +116,4 @@ class WristCamera:
             pos=lens_pos,
             quat=quat,
             rgba=[0.05, 0.05, 0.05, 1],
-            contype=0,
-            conaffinity=0,
         )
