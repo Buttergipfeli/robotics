@@ -29,4 +29,8 @@ def main(episodes=10, seed=0):
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    episodes = int(sys.argv[1]) if len(sys.argv) > 1 else 10
+    seed = int(sys.argv[2]) if len(sys.argv) > 2 else 0
+    main(episodes=episodes, seed=seed)
