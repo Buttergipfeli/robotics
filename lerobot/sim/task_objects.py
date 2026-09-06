@@ -7,7 +7,7 @@ import mujoco
 @dataclass
 class StressBall:
     diameter: float = 0.0668
-    mass: float = 0.05
+    mass: float = 0.045
     rgba: tuple = (0.15, 0.35, 0.95, 1.0)
     pos: tuple = (0.22, 0.06, 0.0244)
 
@@ -33,7 +33,7 @@ class StressBall:
 class ToiletRoll:
     outer_diameter: float = 0.121
     core_diameter: float = 0.0446
-    height: float = 0.10
+    height: float = 0.096
     core_thickness: float = 0.001
     segments: int = 20
     paper_rgba: tuple = (0.95, 0.95, 0.95, 1.0)

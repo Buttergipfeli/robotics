@@ -16,7 +16,7 @@ class So101PickBallEnv:
     BALL_Z = 0.0244
     ROLL_BODY = "toilet_roll"
     ROLL_RADIUS = 0.0605
-    ROLL_HEIGHT = 0.10
+    ROLL_HEIGHT = 0.096
 
     ARM_REST_XY = (0.157, 0.0)
     MIN_BALL_ROLL_DIST = 0.115
