@@ -6,4 +6,5 @@ __pycache__/
 MUJOCO_LOG.TXT
 .claude/
 lerobot/SO-ARM100/
+lerobot/sim/data/
 lerobot/sim/*.png

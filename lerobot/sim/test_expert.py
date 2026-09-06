@@ -25,7 +25,7 @@ def main(episodes=10, seed=0):
         successes += bool(info.get("success"))
         print(f"Episode {ep}: {result}, steps={env.t}")
 
-    print(f"\nErfolgsrate: {successes}/{episodes}")
+    print(f"\nSuccess rate: {successes}/{episodes}")
 
 
 if __name__ == "__main__":
