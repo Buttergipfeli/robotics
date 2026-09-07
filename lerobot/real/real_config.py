@@ -1,13 +1,31 @@
+import os
+from pathlib import Path
+
 from lerobot.cameras.opencv import OpenCVCameraConfig
 from lerobot.robots.so_follower import SOFollower, SOFollowerRobotConfig
 from lerobot.teleoperators.so_leader import SOLeader, SOLeaderTeleopConfig
 
-FOLLOWER_PORT = "/dev/tty.usbmodemXXXX"
-LEADER_PORT = "/dev/tty.usbmodemYYYY"
+
+def _load_env(path):
+    if not path.exists():
+        raise RuntimeError(
+            f"{path} not found. Copy .env.example to .env and fill in your ports."
+        )
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip())
+
+
+_load_env(Path(__file__).parent / ".env")
+
+FOLLOWER_PORT = os.environ["FOLLOWER_PORT"]
+LEADER_PORT = os.environ["LEADER_PORT"]
 FOLLOWER_ID = "so101_follower_main"
 LEADER_ID = "so101_leader_main"
 
-CAMERA_INDEX = 0
+CAMERA_INDEX = int(os.environ["CAMERA_INDEX"])
 CAM_WIDTH = 640
 CAM_HEIGHT = 480
 CAM_FPS = 30
