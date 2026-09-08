@@ -1,24 +1,17 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
 from lerobot.cameras.opencv import OpenCVCameraConfig
 from lerobot.robots.so_follower import SOFollower, SOFollowerRobotConfig
 from lerobot.teleoperators.so_leader import SOLeader, SOLeaderTeleopConfig
 
-
-def _load_env(path):
-    if not path.exists():
-        raise RuntimeError(
-            f"{path} not found. Copy .env.example to .env and fill in your ports."
-        )
-    for line in path.read_text().splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            key, value = line.split("=", 1)
-            os.environ.setdefault(key.strip(), value.strip())
-
-
-_load_env(Path(__file__).parent / ".env")
+ENV_FILE = Path(__file__).parent / ".env"
+if not ENV_FILE.exists():
+    raise RuntimeError(
+        f"{ENV_FILE} not found. Copy .env.example to .env and fill in your ports."
+    )
+load_dotenv(ENV_FILE)
 
 FOLLOWER_PORT = os.environ["FOLLOWER_PORT"]
 LEADER_PORT = os.environ["LEADER_PORT"]
