@@ -36,7 +36,6 @@ def make_follower(with_camera=True, max_relative_target=MAX_RELATIVE_TARGET):
     if with_camera:
         cameras["wrist"] = OpenCVCameraConfig(
             index_or_path=CAMERA_INDEX,
-            fps=CAM_FPS,
             width=CAM_WIDTH,
             height=CAM_HEIGHT,
         )
