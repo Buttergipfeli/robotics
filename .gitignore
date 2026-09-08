@@ -10,3 +10,4 @@ lerobot/SO-ARM100/
 lerobot/sim/data/
 lerobot/sim/train/
 lerobot/sim/*.png
+outputs/captured_images/*
