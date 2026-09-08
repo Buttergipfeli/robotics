@@ -2,9 +2,6 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from lerobot.cameras.opencv import OpenCVCameraConfig
-from lerobot.robots.so_follower import SOFollower, SOFollowerRobotConfig
-from lerobot.teleoperators.so_leader import SOLeader, SOLeaderTeleopConfig
 
 ENV_FILE = Path(__file__).parent / ".env"
 if not ENV_FILE.exists():
@@ -32,6 +29,9 @@ MAX_RELATIVE_TARGET = 20.0
 
 
 def make_follower(with_camera=True, max_relative_target=MAX_RELATIVE_TARGET):
+    from lerobot.cameras.opencv import OpenCVCameraConfig
+    from lerobot.robots.so_follower import SOFollower, SOFollowerRobotConfig
+
     cameras = {}
     if with_camera:
         cameras["wrist"] = OpenCVCameraConfig(
@@ -51,6 +51,8 @@ def make_follower(with_camera=True, max_relative_target=MAX_RELATIVE_TARGET):
 
 
 def make_leader():
+    from lerobot.teleoperators.so_leader import SOLeader, SOLeaderTeleopConfig
+
     config = SOLeaderTeleopConfig(
         port=LEADER_PORT,
         id=LEADER_ID,
