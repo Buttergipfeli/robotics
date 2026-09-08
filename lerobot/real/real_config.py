@@ -38,6 +38,7 @@ def make_follower(with_camera=True, max_relative_target=MAX_RELATIVE_TARGET):
             index_or_path=CAMERA_INDEX,
             width=CAM_WIDTH,
             height=CAM_HEIGHT,
+            warmup_s=3,
         )
     config = SOFollowerRobotConfig(
         port=FOLLOWER_PORT,

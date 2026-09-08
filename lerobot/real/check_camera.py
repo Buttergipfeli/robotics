@@ -14,6 +14,7 @@ def main():
         index_or_path=CAMERA_INDEX,
         width=CAM_WIDTH,
         height=CAM_HEIGHT,
+        warmup_s=3,
     )
     camera = OpenCVCamera(config)
     camera.connect()
