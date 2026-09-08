@@ -7,7 +7,7 @@ from lerobot.cameras.opencv import OpenCVCamera, OpenCVCameraConfig
 
 from real_config import CAM_HEIGHT, CAM_WIDTH, CAMERA_INDEX
 
-OUTPUT = Path(__file__).parent / "camera_check.png"
+OUTPUT = Path(__file__).parent / ".." / ".." / "outputs" / "captured_images" / "camera_check.png"
 
 
 def main():
@@ -24,6 +24,7 @@ def main():
         image = camera.read()
         time.sleep(0.1)
     camera.disconnect()
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray(image).save(OUTPUT)
     print(f"Saved {OUTPUT} ({image.shape[1]}x{image.shape[0]})")
     print("Compare with the sim wrist view: gripper fingers at bottom center, mat ahead.")
