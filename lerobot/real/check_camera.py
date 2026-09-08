@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 from PIL import Image
@@ -18,7 +19,10 @@ def main():
     )
     camera = OpenCVCamera(config)
     camera.connect()
-    image = camera.read()
+    image = None
+    for _ in range(20):
+        image = camera.read()
+        time.sleep(0.1)
     camera.disconnect()
     Image.fromarray(image).save(OUTPUT)
     print(f"Saved {OUTPUT} ({image.shape[1]}x{image.shape[0]})")
