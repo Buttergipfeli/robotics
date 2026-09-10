@@ -42,7 +42,7 @@ def run_ssh(ip, port, command, capture=False):
     )
 
 
-def run_rsync(ip, port, sources, destination, delete=False):
+def run_rsync(port, sources, destination, delete=False):
     command = ["rsync", "-az", "-e", f"ssh -p {port} {' '.join(SSH_OPTS)}"]
     if delete:
         command.append("--delete")
@@ -113,7 +113,7 @@ def main():
         ip, port = wait_for_ssh(pod_id)
         print(f"SSH ready at {ip}:{port}, uploading dataset and training script...")
         run_ssh(ip, port, f"mkdir -p {REMOTE_DIR}")
-        run_rsync(ip, port, [str(DATA_DIR), str(TRAIN_SCRIPT)], f"root@{ip}:{REMOTE_DIR}/")
+        run_rsync(port, [str(DATA_DIR), str(TRAIN_SCRIPT)], f"root@{ip}:{REMOTE_DIR}/")
 
         print("Installing lerobot on the pod...")
         install = run_ssh(ip, port, "pip install -q 'lerobot[dataset,training]'", capture=True)
@@ -132,7 +132,7 @@ def main():
 
         print("Training finished, downloading checkpoint...")
         LOCAL_TRAIN_DIR.mkdir(parents=True, exist_ok=True)
-        run_rsync(ip, port, [f"root@{ip}:{REMOTE_DIR}/train/act_ball"], f"{LOCAL_TRAIN_DIR}/", delete=True)
+        run_rsync(port, [f"root@{ip}:{REMOTE_DIR}/train/act_ball"], f"{LOCAL_TRAIN_DIR}/", delete=True)
         print(f"Checkpoint at {LOCAL_TRAIN_DIR}/act_ball/checkpoints/last/")
         print("Next: ./.venv/bin/python3 lerobot/sim/eval_policy.py 50")
     finally:
