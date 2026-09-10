@@ -41,6 +41,17 @@ def apply_ssh_key_from_env():
         SSH_OPTS.extend(["-i", os.path.expanduser(key_path), "-o", "IdentitiesOnly=yes"])
 
 
+def configure():
+    env_file = RUNPOD_DIR / ".env"
+    if not env_file.exists():
+        sys.exit(f"{env_file} not found. Create it with RUNPOD_API_KEY=<key>.")
+    load_dotenv(env_file)
+    runpod.api_key = os.environ.get("RUNPOD_API_KEY")
+    if not runpod.api_key:
+        sys.exit(f"RUNPOD_API_KEY missing in {env_file}.")
+    apply_ssh_key_from_env()
+
+
 def run_ssh(ip, port, command, capture=False):
     return subprocess.run(
         ["ssh", *SSH_OPTS, "-p", str(port), f"root@{ip}", command],
@@ -93,14 +104,7 @@ def main():
     parser.add_argument("--cloud", default=DEFAULT_CLOUD_TYPE, choices=["COMMUNITY", "SECURE", "ALL"])
     args = parser.parse_args()
 
-    env_file = RUNPOD_DIR / ".env"
-    if not env_file.exists():
-        sys.exit(f"{env_file} not found. Create it with RUNPOD_API_KEY=<key>.")
-    load_dotenv(env_file)
-    runpod.api_key = os.environ.get("RUNPOD_API_KEY")
-    if not runpod.api_key:
-        sys.exit(f"RUNPOD_API_KEY missing in {env_file}.")
-    apply_ssh_key_from_env()
+    configure()
 
     if not (DATA_DIR / "so101_ball_in_roll").exists():
         sys.exit(f"Dataset not found in {DATA_DIR}. Record episodes first.")

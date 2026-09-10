@@ -83,6 +83,13 @@ What the script does:
    exactly where `eval_policy.py` and `rollout_policy.py` look for it.
 9. Terminates the pod (also on any failure path).
 
+While a training runs, print the pod's log from a second terminal (`-f`
+follows live, Ctrl+C detaches without touching the training):
+
+```bash
+./.venv/bin/python3 lerobot/runpod/show_logs.py -f
+```
+
 Afterwards, evaluate locally:
 
 ```bash
