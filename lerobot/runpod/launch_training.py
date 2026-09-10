@@ -18,6 +18,7 @@ LOCAL_TRAIN_DIR = SIM_DIR / "train"
 POD_NAME = "so101-act-training"
 IMAGE = "runpod/pytorch:1.1.0-cu1290-torch291-ubuntu2404"
 DEFAULT_GPU = "NVIDIA GeForce RTX 4090"
+DEFAULT_CLOUD_TYPE = "COMMUNITY"
 CONTAINER_DISK_GB = 40
 REMOTE_DIR = "/workspace/so101"
 SSH_READY_TIMEOUT = 600
@@ -82,6 +83,7 @@ def main():
     parser.add_argument("--steps", type=int, default=50_000)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--gpu", default=DEFAULT_GPU)
+    parser.add_argument("--cloud", default=DEFAULT_CLOUD_TYPE, choices=["COMMUNITY", "SECURE", "ALL"])
     args = parser.parse_args()
 
     env_file = RUNPOD_DIR / ".env"
@@ -98,6 +100,7 @@ def main():
         name=POD_NAME,
         image_name=IMAGE,
         gpu_type_id=args.gpu,
+        cloud_type=args.cloud,
         container_disk_in_gb=CONTAINER_DISK_GB,
         support_public_ip=True,
         start_ssh=True,
