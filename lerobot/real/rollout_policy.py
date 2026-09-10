@@ -45,7 +45,9 @@ def main(episodes=1):
     policy.to(DEVICE)
     policy.eval()
     preprocessor, postprocessor = make_pre_post_processors(
-        policy.config, pretrained_path=str(CHECKPOINT)
+        policy.config,
+        pretrained_path=str(CHECKPOINT),
+        preprocessor_overrides={"device_processor": {"device": DEVICE}},
     )
 
     robot = make_follower(with_camera=True)

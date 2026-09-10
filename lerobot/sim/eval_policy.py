@@ -27,13 +27,20 @@ def obs_to_raw(obs):
     }
 
 
-def main(episodes=DEFAULT_EPISODES, seed=DEFAULT_SEED):
+def load_policy():
     policy = ACTPolicy.from_pretrained(str(CHECKPOINT))
     policy.to(DEVICE)
     policy.eval()
     preprocessor, postprocessor = make_pre_post_processors(
-        policy.config, pretrained_path=str(CHECKPOINT)
+        policy.config,
+        pretrained_path=str(CHECKPOINT),
+        preprocessor_overrides={"device_processor": {"device": DEVICE}},
     )
+    return policy, preprocessor, postprocessor
+
+
+def main(episodes=DEFAULT_EPISODES, seed=DEFAULT_SEED):
+    policy, preprocessor, postprocessor = load_policy()
 
     env = So101PickBallEnv(build_model(), seed=seed)
 

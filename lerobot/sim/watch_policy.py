@@ -5,21 +5,13 @@ import mujoco
 import mujoco.viewer
 import torch
 
-from lerobot.policies.act.modeling_act import ACTPolicy
-from lerobot.policies.factory import make_pre_post_processors
-
 from build_scene import build_model
-from eval_policy import CHECKPOINT, DEVICE, obs_to_raw
+from eval_policy import load_policy, obs_to_raw
 from sim_env import So101PickBallEnv
 
 
 def main(episodes=10, seed=100):
-    policy = ACTPolicy.from_pretrained(str(CHECKPOINT))
-    policy.to(DEVICE)
-    policy.eval()
-    preprocessor, postprocessor = make_pre_post_processors(
-        policy.config, pretrained_path=str(CHECKPOINT)
-    )
+    policy, preprocessor, postprocessor = load_policy()
 
     env = So101PickBallEnv(build_model(), seed=seed)
     tick = 1.0 / env.CONTROL_HZ
