@@ -1,12 +1,16 @@
 # Training on RunPod
 
-Train the ACT policy on a cloud GPU instead of the local Mac. Only the dataset
-and `train_policy.py` are needed on the pod, no MuJoCo, no scene files.
+Train the ACT policy on a cloud GPU. The automated way is a single command:
+`lerobot/runpod/launch_training.py` creates the pod via the RunPod API, drives
+everything over SSH (upload, install, training, download) and always
+terminates the pod at the end, on success, failure, timeout or Ctrl+C.
 
-## 0. One-time setup: SSH key
+## One-time setup
+
+### 1. SSH key
 
 Generate a key pair if you do not have one yet (creates `~/.ssh/id_ed25519`
-and `~/.ssh/id_ed25519.pub`):
+and `~/.ssh/id_ed25519.pub`, both stay in `~/.ssh/`):
 
 ```bash
 ssh-keygen -t ed25519 -C "your@email.com"
@@ -19,87 +23,85 @@ cat ~/.ssh/id_ed25519.pub
 ```
 
 Paste it on [console.runpod.io/user/settings](https://www.console.runpod.io/user/settings)
-into the **SSH Public Keys** field. RunPod injects the keys from your account
-settings into pods automatically, including already running ones.
+under **SSH Public Keys**. RunPod injects the keys from your account settings
+into pods automatically; `ssh` and `rsync` pick up the private key from its
+default location, nothing else to configure.
 
-## 1. Deploy a pod
+### 2. API key
 
-- Any current NVIDIA GPU works; ACT training is light, so pick whatever is
-  cheap and available (12+ GB VRAM is more than enough).
-- Use a PyTorch/CUDA template and ~20 GB container disk.
-- The pod must support **SSH over exposed TCP** (public IP): the proxy
-  connection via `ssh.runpod.io` does not allow scp/rsync file transfer.
-- Open the pod's **Connect** dialog and note IP and port from the
-  "SSH over exposed TCP" command.
-
-## 2. Set connection variables (local shell)
+On the same settings page under **API Keys**: **Create API Key**, permission
+**All** (the script manages pods via `api.runpod.io/graphql`, which the other
+permission levels do not cover). The key is shown only once, copy it straight
+into the env file:
 
 ```bash
-export POD_IP=<ip-from-connect-dialog>
-export POD_PORT=<port-from-connect-dialog>
+cat > lerobot/runpod/.env <<'EOF'
+RUNPOD_API_KEY=<your-key>
+EOF
 ```
 
-## 3. Upload dataset and training script (local shell)
+The file is gitignored. Treat the key like a password, it has full account
+access.
 
-Run from the repo root:
+### 3. Credits
+
+Pods only start with a positive balance, top up a few dollars under
+**Billing**. A full 50k-step run on an RTX 4090 costs roughly 1 to 2 USD.
+
+## Run a training
+
+Validate the whole chain first with a cheap test run (a few minutes, a few
+cents):
 
 ```bash
-rsync -avz -e "ssh -p $POD_PORT" lerobot/sim/data lerobot/sim/train_policy.py root@$POD_IP:/workspace/so101/
+./.venv/bin/python3 lerobot/runpod/launch_training.py --steps 200
 ```
 
-This creates `/workspace/so101/train_policy.py` and
-`/workspace/so101/data/so101_ball_in_roll/` on the pod, the relative layout the
-script expects.
-
-## 4. Connect and start training (on the pod)
+Then the real run:
 
 ```bash
-ssh -p $POD_PORT root@$POD_IP
+./.venv/bin/python3 lerobot/runpod/launch_training.py
 ```
 
-Then on the pod:
+Options: `--steps` (default 50000), `--batch-size` (default 32),
+`--gpu "NVIDIA GeForce RTX 4090"` (any RunPod GPU type id).
 
-```bash
-pip install 'lerobot[dataset,training]'
-```
+What the script does:
 
-```bash
-cd /workspace/so101 && nohup python train_policy.py > train.log 2>&1 &
-```
+1. Creates a pod (PyTorch image, public IP, SSH exposed).
+2. Waits until SSH is reachable.
+3. Uploads the dataset and `train_policy.py` via rsync.
+4. Installs `lerobot[dataset,training]` on the pod.
+5. Starts training under `nohup`, records the exit code.
+6. Polls once a minute, printing the latest log line. On failure it prints
+   the last 30 log lines and aborts; hard timeout after 6 h.
+7. Downloads the checkpoint to `lerobot/sim/train/act_ball/checkpoints/last/`,
+   exactly where `eval_policy.py` and `rollout_policy.py` look for it.
+8. Terminates the pod (also on any failure path).
 
-The training survives SSH disconnects thanks to `nohup`. Watch progress with:
-
-```bash
-tail -f /workspace/so101/train.log
-```
-
-Done when the log prints `End of training` (checkpoints land in
-`/workspace/so101/train/act_ball/checkpoints/`).
-
-Optional: edit `BATCH_SIZE = 32` in the pod's copy of `train_policy.py` to use
-the GPU better.
-
-## 5. Download the checkpoint (local shell)
-
-Remove the old local training output first, then pull:
-
-```bash
-rm -rf lerobot/sim/train
-```
-
-```bash
-rsync -avz -e "ssh -p $POD_PORT" root@$POD_IP:/workspace/so101/train/act_ball lerobot/sim/train/
-```
-
-The checkpoint ends up at `lerobot/sim/train/act_ball/checkpoints/last/`,
-exactly where `eval_policy.py` and `rollout_policy.py` look for it.
-
-## 6. Stop the pod
-
-Stop (or terminate) the pod in the RunPod console, it bills while running.
-
-## 7. Evaluate locally
+Afterwards, evaluate locally:
 
 ```bash
 ./.venv/bin/python3 lerobot/sim/eval_policy.py 50
 ```
+
+## Manual fallback over plain SSH
+
+If you ever need to do it by hand: deploy any pod with a PyTorch/CUDA template
+that supports **SSH over exposed TCP** (the `ssh.runpod.io` proxy cannot do
+scp/rsync), take IP and port from the pod's Connect dialog, then:
+
+```bash
+export POD_IP=<ip> POD_PORT=<port>
+rsync -avz -e "ssh -p $POD_PORT" lerobot/sim/data lerobot/sim/train_policy.py root@$POD_IP:/workspace/so101/
+ssh -p $POD_PORT root@$POD_IP
+# on the pod:
+pip install 'lerobot[dataset,training]'
+cd /workspace/so101 && nohup python train_policy.py > train.log 2>&1 &
+tail -f train.log
+# back on the Mac, when the log prints "End of training":
+rm -rf lerobot/sim/train
+rsync -avz -e "ssh -p $POD_PORT" root@$POD_IP:/workspace/so101/train/act_ball lerobot/sim/train/
+```
+
+Stop the pod in the console afterwards, it bills while running.
