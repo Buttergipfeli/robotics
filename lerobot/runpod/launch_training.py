@@ -16,13 +16,13 @@ TRAIN_SCRIPT = SIM_DIR / "train_policy.py"
 LOCAL_TRAIN_DIR = SIM_DIR / "train"
 
 POD_NAME = "so101-act-training"
-IMAGE = "runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04"
+IMAGE = "runpod/pytorch:1.1.0-cu1290-torch291-ubuntu2404"
 DEFAULT_GPU = "NVIDIA GeForce RTX 4090"
 CONTAINER_DISK_GB = 40
 REMOTE_DIR = "/workspace/so101"
 SSH_READY_TIMEOUT = 600
 POLL_SECONDS = 60
-MAX_HOURS = 6
+MAX_HOURS = 24
 
 SSH_OPTS = ["-o", "StrictHostKeyChecking=accept-new", "-o", "ConnectTimeout=10"]
 
