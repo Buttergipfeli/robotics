@@ -7,9 +7,9 @@ places it on top of a toilet paper roll, observed by a single wrist camera.
 
 | Part | Dimensions |
 | --- | --- |
-| Cork mat | 250 mm deep x 300 mm wide, 3 mm thick, near edge 72 mm in front of the arm's base foot |
+| Cork mat | 250 mm deep x 300 mm wide, 3 mm thick, speckled cork texture, near edge 72 mm in front of the arm's base foot |
 | Platform under the arm | 237 mm wide x 167 mm deep, 12 mm high, front edge flush with the mat |
-| Stress ball | 66.8 mm diameter, 45 g, blue, free body |
+| Stress ball | 66.8 mm diameter, 45 g, light blue foam with dark print, free body |
 | Toilet paper roll | 121 mm outer diameter, 44.6 mm core hole, 96 mm high, white paper with grey core, static |
 
 The arm faces the **short** side of the mat, so its 300 mm run left to right.
@@ -79,13 +79,22 @@ expert and to any policy at evaluation time.
 | Camera position | ±8 mm per axis |
 | Camera tilt | ±0.05 rad about two axes |
 | Camera fovy | 64 to 76° |
-| Light position / intensity | ±30 cm / 0.6x to 1.2x |
-| Mat shade | 0.8x to 1.15x |
+| Light position / intensity | ±30 cm / 0.5x to 1.3x |
+| Mat shade | 0.7x to 1.2x |
 | Roll paper shade | 0.85x to 1.02x |
+| Floor shade | 0.3x to 1.1x |
+| Ball colour | hue ±0.04, saturation 0.5x to 1.3x, value 0.6x to 1.15x |
+| Ball markings | 0 to 6 dark ellipses, optional light label patch and dark dot, drawn into the ball texture |
+| Camera exposure / gamma | 0.35x to 1.3x / 0.8 to 1.3 |
+| White balance | ±10% per channel |
+| Sensor noise / blur | Gaussian, sigma up to 8/255 / up to 1.2 px |
 
 Ball and roll positions are re-sampled every episode as described above.
 Randomisation runs by mutating the compiled model at reset time, so no
-recompilation is needed.
+recompilation is needed; the ball texture is repainted and re-uploaded to the
+renderer, and exposure, gamma, white balance, blur and noise are applied to
+every rendered frame while randomisation is on. Nominal colours and light were
+tuned against a real wrist-camera frame of the ball, mat and roll.
 
 ## Real robot joint mapping
 

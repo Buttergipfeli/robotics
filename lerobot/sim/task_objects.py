@@ -8,10 +8,26 @@ import mujoco
 class StressBall:
     diameter: float = 0.0668
     mass: float = 0.045
-    rgba: tuple = (0.15, 0.35, 0.95, 1.0)
+    rgb: tuple = (0.66, 0.86, 1.0)
+    emission: float = 0.2
+    specular: float = 0.2
+    texture_size: int = 64
     pos: tuple = (0.22, 0.06, 0.0244)
 
     def attach(self, spec):
+        texture = spec.add_texture()
+        texture.name = "stress_ball"
+        texture.type = mujoco.mjtTexture.mjTEXTURE_CUBE
+        texture.builtin = mujoco.mjtBuiltin.mjBUILTIN_FLAT
+        texture.rgb1 = list(self.rgb)
+        texture.width = self.texture_size
+        texture.height = self.texture_size
+        material = spec.add_material()
+        material.name = "stress_ball"
+        material.textures[int(mujoco.mjtTextureRole.mjTEXROLE_RGB)] = "stress_ball"
+        material.emission = self.emission
+        material.specular = self.specular
+
         body = spec.worldbody.add_body(name="stress_ball", pos=list(self.pos))
         body.add_freejoint()
         body.add_geom(
@@ -19,7 +35,7 @@ class StressBall:
             type=mujoco.mjtGeom.mjGEOM_SPHERE,
             size=[self.diameter / 2, 0, 0],
             mass=self.mass,
-            rgba=list(self.rgba),
+            material="stress_ball",
             condim=6,
             friction=[2.0, 0.05, 0.005],
             solref=[0.04, 1.0],
@@ -36,8 +52,8 @@ class ToiletRoll:
     height: float = 0.096
     core_thickness: float = 0.001
     segments: int = 20
-    paper_rgba: tuple = (0.95, 0.95, 0.95, 1.0)
-    core_rgba: tuple = (0.55, 0.50, 0.45, 1.0)
+    paper_rgba: tuple = (0.93, 0.93, 0.95, 1.0)
+    core_rgba: tuple = (0.45, 0.40, 0.35, 1.0)
     pos: tuple = (0.28, -0.07, -0.009)
 
     def attach(self, spec):

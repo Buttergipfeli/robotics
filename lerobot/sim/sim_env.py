@@ -1,6 +1,9 @@
-import numpy as np
+import colorsys
+
+import cv2
 import mujoco
 import mujoco.viewer
+import numpy as np
 
 class So101PickBallEnv:
     CONTROL_HZ = 10
@@ -48,14 +51,25 @@ class So101PickBallEnv:
     CAM_TILT_JITTER = 0.05
     CAM_FOVY_RANGE = (64.0, 76.0)
     LIGHT_POS_JITTER = 0.3
-    LIGHT_DIFFUSE_SCALE_RANGE = (0.6, 1.2)
-    MAT_SHADE_SCALE_RANGE = (0.8, 1.15)
+    LIGHT_DIFFUSE_SCALE_RANGE = (0.5, 1.3)
+    MAT_SHADE_SCALE_RANGE = (0.7, 1.2)
     PAPER_SHADE_SCALE_RANGE = (0.85, 1.02)
+    FLOOR_SHADE_SCALE_RANGE = (0.3, 1.1)
+    BALL_HUE_JITTER = 0.04
+    BALL_SAT_SCALE_RANGE = (0.5, 1.3)
+    BALL_VAL_SCALE_RANGE = (0.6, 1.15)
+    BALL_MARKINGS_MAX = 6
+    EXPOSURE_RANGE = (0.35, 1.3)
+    GAMMA_RANGE = (0.8, 1.3)
+    WHITE_BALANCE_JITTER = 0.1
+    NOISE_SIGMA_MAX = 8.0
+    BLUR_SIGMA_MAX = 1.2
 
     def __init__(self, model, seed=None, randomize=True):
         self.model = model
         self.data = mujoco.MjData(self.model)
         self.rng = np.random.default_rng(seed)
+        self.frame_rng = np.random.default_rng(self.rng.integers(2**32))
         self.randomize = randomize
         self.n_substeps = int(1 / (self.CONTROL_HZ * self.model.opt.timestep))
         self.max_steps = self.CONTROL_HZ * self.EPISODE_SECONDS
@@ -91,6 +105,17 @@ class So101PickBallEnv:
         self.base_cam_quat = self.model.cam_quat[self.cam_id].copy()
         self.base_light_pos = self.model.light_pos[0].copy() if self.model.nlight else None
         self.base_light_diffuse = self.model.light_diffuse[0].copy() if self.model.nlight else None
+        self.floor_geom_id = self.model.geom("floor").id
+        self.base_floor_rgba = self.model.geom_rgba[self.floor_geom_id].copy()
+        ball_mat_id = self.model.geom_matid[self.ball_geom_id]
+        self.ball_tex_id = self.model.mat_texid[ball_mat_id, int(mujoco.mjtTextureRole.mjTEXROLE_RGB)]
+        tex_adr = self.model.tex_adr[self.ball_tex_id]
+        self.base_ball_rgb = self.model.tex_data[tex_adr:tex_adr + 3] / 255.0
+        self.exposure = 1.0
+        self.gamma = 1.0
+        self.white_balance = np.ones(3)
+        self.noise_sigma = 0.0
+        self.blur_sigma = 0.0
 
     def launch(self):
         mujoco.viewer.launch(self.model, self.data)
@@ -192,6 +217,15 @@ class So101PickBallEnv:
         paper_shade = rng.uniform(*self.PAPER_SHADE_SCALE_RANGE)
         for g in self.paper_geom_ids:
             model.geom_rgba[g][:3] = np.clip(self.base_paper_rgba[:3] * paper_shade, 0, 1)
+        floor_shade = rng.uniform(*self.FLOOR_SHADE_SCALE_RANGE)
+        model.geom_rgba[self.floor_geom_id][:3] = np.clip(self.base_floor_rgba[:3] * floor_shade, 0, 1)
+        self._paint_ball_texture(rng)
+
+        self.exposure = rng.uniform(*self.EXPOSURE_RANGE)
+        self.gamma = rng.uniform(*self.GAMMA_RANGE)
+        self.white_balance = rng.uniform(1 - self.WHITE_BALANCE_JITTER, 1 + self.WHITE_BALANCE_JITTER, 3)
+        self.noise_sigma = rng.uniform(0.0, self.NOISE_SIGMA_MAX)
+        self.blur_sigma = rng.uniform(0.0, self.BLUR_SIGMA_MAX)
 
         if self.model.nlight:
             model.light_pos[0][:2] = self.base_light_pos[:2] + rng.uniform(
@@ -201,9 +235,47 @@ class So101PickBallEnv:
                 *self.LIGHT_DIFFUSE_SCALE_RANGE
             )
 
+    def _paint_ball_texture(self, rng):
+        hue, sat, val = colorsys.rgb_to_hsv(*self.base_ball_rgb)
+        hue = (hue + rng.uniform(-self.BALL_HUE_JITTER, self.BALL_HUE_JITTER)) % 1.0
+        sat = np.clip(sat * rng.uniform(*self.BALL_SAT_SCALE_RANGE), 0, 1)
+        val = np.clip(val * rng.uniform(*self.BALL_VAL_SCALE_RANGE), 0, 1)
+        width = int(self.model.tex_width[self.ball_tex_id])
+        height = int(self.model.tex_height[self.ball_tex_id])
+        canvas = np.empty((height, width, 3), dtype=np.uint8)
+        canvas[:] = np.array(colorsys.hsv_to_rgb(hue, sat, val)) * 255
+
+        def random_point():
+            return int(rng.integers(0, width)), int(rng.integers(0, height))
+
+        for _ in range(rng.integers(0, self.BALL_MARKINGS_MAX + 1)):
+            axes = (int(rng.integers(width // 8, width // 2)), int(rng.integers(width // 16, width // 4)))
+            shade = int(rng.integers(20, 90))
+            cv2.ellipse(canvas, random_point(), axes, float(rng.uniform(0, 180)), 0, 360, (shade,) * 3, -1)
+        if rng.random() < 0.5:
+            x, y = random_point()
+            size = (int(rng.integers(width // 4, width)), int(rng.integers(width // 8, width // 2)))
+            cv2.rectangle(canvas, (x, y), (x + size[0], y + size[1]), (235, 235, 240), -1)
+        if rng.random() < 0.7:
+            cv2.circle(canvas, random_point(), int(rng.integers(2, 4)), (30, 30, 30), -1)
+
+        tex_adr = self.model.tex_adr[self.ball_tex_id]
+        self.model.tex_data[tex_adr:tex_adr + canvas.size] = canvas.ravel()
+        mujoco.mjr_uploadTexture(self.model, self.renderer._mjr_context, self.ball_tex_id)
+
+    def _process_image(self, image):
+        img = image.astype(np.float32) / 255.0
+        img = np.clip(img * self.exposure * self.white_balance, 0, 1) ** self.gamma
+        if self.blur_sigma > 0.3:
+            img = cv2.GaussianBlur(img, (0, 0), self.blur_sigma)
+        img = img + self.frame_rng.normal(0.0, self.noise_sigma / 255.0, img.shape)
+        return (np.clip(img, 0, 1) * 255).astype(np.uint8)
+
     def get_observation(self):
         self.renderer.update_scene(self.data, camera="wrist")
         image = self.renderer.render()
+        if self.randomize:
+            image = self._process_image(image)
         joints = self.rad_to_norm(self.data.qpos[self.ARM_QPOS])
         return {"image": image, "state": joints}
 
