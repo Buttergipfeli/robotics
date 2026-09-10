@@ -22,6 +22,7 @@ DEFAULT_CLOUD_TYPE = "SECURE"
 CONTAINER_DISK_GB = 40
 REMOTE_DIR = "/workspace/so101"
 REMOTE_PYTHON = "/workspace/venv/bin/python"
+TORCH_CUDA_INDEX = "https://download.pytorch.org/whl/cu128"
 SSH_READY_TIMEOUT = 300
 POLL_SECONDS = 60
 MAX_HOURS = 24
@@ -128,11 +129,23 @@ def main():
             ip,
             port,
             "python3 -m venv --system-site-packages /workspace/venv && "
-            f"{REMOTE_PYTHON} -m pip install -q 'lerobot[dataset,training]'",
+            f"{REMOTE_PYTHON} -m pip install -q 'lerobot[dataset,training]' && "
+            f"PINS=$({REMOTE_PYTHON} -m pip freeze | grep -E '^(torch|torchvision)==' | sed 's/+.*//') && "
+            f"{REMOTE_PYTHON} -m pip install -q --force-reinstall $PINS --index-url {TORCH_CUDA_INDEX}",
             capture=True,
         )
         if install.returncode != 0:
             sys.exit(f"Install failed:\n{install.stderr[-2000:]}")
+
+        gpu_check = run_ssh(
+            ip,
+            port,
+            f"{REMOTE_PYTHON} -c 'import torch; assert torch.cuda.is_available(); print(torch.cuda.get_device_name(0))'",
+            capture=True,
+        )
+        if gpu_check.returncode != 0:
+            sys.exit(f"GPU unusable on this pod (torch/driver mismatch):\n{gpu_check.stderr[-2000:]}")
+        print(f"GPU check passed: {gpu_check.stdout.strip()}")
 
         print(f"Starting training ({args.steps} steps, batch {args.batch_size})...")
         start = run_ssh(
