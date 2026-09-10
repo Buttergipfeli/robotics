@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+import torch
 from lerobot.configs.default import DatasetConfig
 from lerobot.configs.train import TrainPipelineConfig
 from lerobot.policies.act.configuration_act import ACTConfig
@@ -14,7 +15,7 @@ OUTPUT_DIR = SIM_DIR / "train" / "act_ball"
 JOB_NAME = "act_ball"
 TRAIN_STEPS = 50_000
 BATCH_SIZE = 8
-DEVICE = "mps"
+DEVICE = "cuda" if torch.cuda.is_available() else "mps"
 SEED = 1000
 
 
