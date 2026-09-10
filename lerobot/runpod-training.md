@@ -77,10 +77,14 @@ What the script does:
 5. Verifies `torch.cuda.is_available()` and aborts if the GPU is unusable,
    so a bad host never trains silently on CPU.
 6. Starts training under `nohup`, records the exit code.
-7. Polls once a minute, printing the latest log line. On failure it prints
-   the last 30 log lines and aborts; hard timeout after 24 h.
-8. Downloads the checkpoint to `lerobot/sim/train/act_ball/checkpoints/last/`,
-   exactly where `eval_policy.py` and `rollout_policy.py` look for it.
+7. Polls once a minute, printing the latest log line. Every checkpoint the
+   training writes (every 5000 steps, `SAVE_FREQ` in `train_policy.py`) is
+   downloaded to `lerobot/sim/train/act_ball/checkpoints/<step>/` as soon as
+   it exists, so you can evaluate intermediate policies or stop early with
+   Ctrl+C when the loss plateaus. On failure it prints the last 30 log lines
+   and aborts; hard timeout after 24 h.
+8. Downloads the final checkpoint; `checkpoints/last/` is exactly where
+   `eval_policy.py` and `rollout_policy.py` look for it.
 9. Terminates the pod (also on any failure path).
 
 While a training runs, print the pod's log from a second terminal (`-f`

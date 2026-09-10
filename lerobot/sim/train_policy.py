@@ -15,6 +15,7 @@ OUTPUT_DIR = SIM_DIR / "train" / "act_ball"
 JOB_NAME = "act_ball"
 TRAIN_STEPS = 50_000
 BATCH_SIZE = 8
+SAVE_FREQ = 5_000
 DEVICE = "cuda" if torch.cuda.is_available() else "mps"
 SEED = 1000
 
@@ -27,6 +28,7 @@ def main(steps=TRAIN_STEPS, batch_size=BATCH_SIZE, output_dir=OUTPUT_DIR):
         job_name=JOB_NAME,
         steps=steps,
         batch_size=batch_size,
+        save_freq=SAVE_FREQ,
         seed=SEED,
     )
     cfg.validate()

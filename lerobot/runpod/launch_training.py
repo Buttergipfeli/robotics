@@ -14,6 +14,7 @@ SIM_DIR = REPO_ROOT / "lerobot" / "sim"
 DATA_DIR = SIM_DIR / "data"
 TRAIN_SCRIPT = SIM_DIR / "train_policy.py"
 LOCAL_TRAIN_DIR = SIM_DIR / "train"
+LOCAL_CHECKPOINTS = LOCAL_TRAIN_DIR / "act_ball" / "checkpoints"
 
 POD_NAME = "so101-act-training"
 IMAGE = "runpod/pytorch:1.1.0-cu1290-torch291-ubuntu2404"
@@ -21,9 +22,10 @@ DEFAULT_GPU = "NVIDIA GeForce RTX 4090"
 DEFAULT_CLOUD_TYPE = "SECURE"
 CONTAINER_DISK_GB = 40
 REMOTE_DIR = "/workspace/so101"
+REMOTE_CHECKPOINTS = f"{REMOTE_DIR}/train/act_ball/checkpoints"
 REMOTE_PYTHON = "/workspace/venv/bin/python"
 TORCH_CUDA_INDEX = "https://download.pytorch.org/whl/cu128"
-SSH_READY_TIMEOUT = 300
+SSH_READY_TIMEOUT = 420
 POLL_SECONDS = 60
 MAX_HOURS = 24
 
@@ -81,8 +83,23 @@ def wait_for_ssh(pod_id):
     sys.exit("Pod did not become reachable via SSH.")
 
 
+def download_checkpoints(ip, port, delete=False):
+    LOCAL_TRAIN_DIR.mkdir(parents=True, exist_ok=True)
+    run_rsync(port, [f"root@{ip}:{REMOTE_DIR}/train/act_ball"], f"{LOCAL_TRAIN_DIR}/", delete=delete)
+
+
+def download_new_checkpoint(ip, port, downloaded):
+    latest = run_ssh(ip, port, f"readlink {REMOTE_CHECKPOINTS}/last 2>/dev/null", capture=True).stdout.strip()
+    if not latest or latest == downloaded:
+        return downloaded
+    download_checkpoints(ip, port)
+    print(f"Checkpoint {latest} downloaded to {LOCAL_CHECKPOINTS}/{latest}")
+    return latest
+
+
 def wait_for_training(ip, port):
     deadline = time.time() + MAX_HOURS * 3600
+    downloaded = None
     while time.time() < deadline:
         time.sleep(POLL_SECONDS)
         exit_code = run_ssh(ip, port, f"cat {REMOTE_DIR}/EXIT 2>/dev/null", capture=True).stdout.strip()
@@ -91,7 +108,10 @@ def wait_for_training(ip, port):
         if exit_code:
             log_tail = run_ssh(ip, port, f"tail -30 {REMOTE_DIR}/train.log", capture=True)
             sys.exit(f"Training failed with exit code {exit_code}. Last log lines:\n{log_tail.stdout}")
-        progress = run_ssh(ip, port, f"tail -1 {REMOTE_DIR}/train.log 2>/dev/null", capture=True)
+        downloaded = download_new_checkpoint(ip, port, downloaded)
+        progress = run_ssh(
+            ip, port, f"tail -1 {REMOTE_DIR}/train.log 2>/dev/null | tr '\\r' '\\n' | tail -1", capture=True
+        )
         print(f"waiting... {progress.stdout.strip()}")
     sys.exit(f"Timeout after {MAX_HOURS}h.")
 
@@ -164,10 +184,9 @@ def main():
             sys.exit(f"Failed to start training:\n{start.stderr}")
         wait_for_training(ip, port)
 
-        print("Training finished, downloading checkpoint...")
-        LOCAL_TRAIN_DIR.mkdir(parents=True, exist_ok=True)
-        run_rsync(port, [f"root@{ip}:{REMOTE_DIR}/train/act_ball"], f"{LOCAL_TRAIN_DIR}/", delete=True)
-        print(f"Checkpoint at {LOCAL_TRAIN_DIR}/act_ball/checkpoints/last/")
+        print("Training finished, downloading final checkpoint...")
+        download_checkpoints(ip, port, delete=True)
+        print(f"Checkpoint at {LOCAL_CHECKPOINTS}/last/")
         print("Next: ./.venv/bin/python3 lerobot/sim/eval_policy.py 50")
     finally:
         try:
