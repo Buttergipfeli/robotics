@@ -68,7 +68,8 @@ Options: `--steps` (default 50000), `--batch-size` (default 32),
 
 What the script does:
 
-1. Creates a pod (PyTorch image, public IP, SSH exposed).
+1. Keeps the Mac awake for the whole run (`caffeinate`), then creates a pod
+   (PyTorch image, public IP, SSH exposed).
 2. Waits until SSH is reachable.
 3. Uploads the dataset and `train_policy.py` via rsync.
 4. Installs `lerobot[dataset,training]` on the pod, then repins torch and

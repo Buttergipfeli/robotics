@@ -124,6 +124,8 @@ def main():
     parser.add_argument("--cloud", default=DEFAULT_CLOUD_TYPE, choices=["COMMUNITY", "SECURE", "ALL"])
     args = parser.parse_args()
 
+    if sys.platform == "darwin":
+        subprocess.Popen(["caffeinate", "-is", "-w", str(os.getpid())])
     configure()
 
     if not (DATA_DIR / "so101_ball_in_roll").exists():
