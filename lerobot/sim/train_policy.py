@@ -35,4 +35,5 @@ def main(steps=TRAIN_STEPS, batch_size=BATCH_SIZE, output_dir=OUTPUT_DIR):
 
 if __name__ == "__main__":
     steps = int(sys.argv[1]) if len(sys.argv) > 1 else TRAIN_STEPS
-    main(steps=steps)
+    batch_size = int(sys.argv[2]) if len(sys.argv) > 2 else BATCH_SIZE
+    main(steps=steps, batch_size=batch_size)
