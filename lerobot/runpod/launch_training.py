@@ -21,6 +21,7 @@ DEFAULT_GPU = "NVIDIA GeForce RTX 4090"
 DEFAULT_CLOUD_TYPE = "SECURE"
 CONTAINER_DISK_GB = 40
 REMOTE_DIR = "/workspace/so101"
+REMOTE_PYTHON = "/workspace/venv/bin/python"
 SSH_READY_TIMEOUT = 600
 POLL_SECONDS = 60
 MAX_HOURS = 24
@@ -123,7 +124,13 @@ def main():
         run_rsync(port, [str(DATA_DIR), str(TRAIN_SCRIPT)], f"root@{ip}:{REMOTE_DIR}/")
 
         print("Installing lerobot on the pod...")
-        install = run_ssh(ip, port, "pip install -q 'lerobot[dataset,training]'", capture=True)
+        install = run_ssh(
+            ip,
+            port,
+            "python3 -m venv --system-site-packages /workspace/venv && "
+            f"{REMOTE_PYTHON} -m pip install -q 'lerobot[dataset,training]'",
+            capture=True,
+        )
         if install.returncode != 0:
             sys.exit(f"Install failed:\n{install.stderr[-2000:]}")
 
@@ -132,7 +139,7 @@ def main():
             ip,
             port,
             f"cd {REMOTE_DIR} && rm -f EXIT && "
-            f"nohup bash -c 'python train_policy.py {args.steps} {args.batch_size} "
+            f"nohup bash -c '{REMOTE_PYTHON} train_policy.py {args.steps} {args.batch_size} "
             f"> train.log 2>&1; echo $? > EXIT' >/dev/null 2>&1 &",
             capture=True,
         )
