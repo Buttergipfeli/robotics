@@ -53,9 +53,9 @@ def main(episodes=1):
     robot = make_follower(with_camera=True)
     robot.connect()
     try:
+        move_to_rest(robot)
         for ep in range(episodes):
             input(f"Episode {ep}: place ball and roll on the mat, then press Enter...")
-            move_to_rest(robot)
             policy.reset()
             for _ in range(EPISODE_SECONDS * CONTROL_HZ):
                 start = time.perf_counter()
@@ -68,8 +68,9 @@ def main(episodes=1):
                 time.sleep(max(0.0, 1 / CONTROL_HZ - (time.perf_counter() - start)))
             move_to_rest(robot)
     except KeyboardInterrupt:
-        print("\nRollout aborted.")
+        print("\nRollout aborted, returning to rest.")
     finally:
+        move_to_rest(robot)
         robot.disconnect()
 
 
