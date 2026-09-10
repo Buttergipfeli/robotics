@@ -27,6 +27,12 @@ MAX_HOURS = 6
 SSH_OPTS = ["-o", "StrictHostKeyChecking=accept-new", "-o", "ConnectTimeout=10"]
 
 
+def apply_ssh_key_from_env():
+    key_path = os.environ.get("RUNPOD_SSH_KEY")
+    if key_path:
+        SSH_OPTS.extend(["-i", os.path.expanduser(key_path), "-o", "IdentitiesOnly=yes"])
+
+
 def run_ssh(ip, port, command, capture=False):
     return subprocess.run(
         ["ssh", *SSH_OPTS, "-p", str(port), f"root@{ip}", command],
@@ -83,6 +89,7 @@ def main():
         sys.exit(f"{env_file} not found. Create it with RUNPOD_API_KEY=<key>.")
     load_dotenv(env_file)
     runpod.api_key = os.environ["RUNPOD_API_KEY"]
+    apply_ssh_key_from_env()
 
     if not (DATA_DIR / "so101_ball_in_roll").exists():
         sys.exit(f"Dataset not found in {DATA_DIR}. Record episodes first.")
