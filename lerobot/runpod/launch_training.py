@@ -25,7 +25,12 @@ SSH_READY_TIMEOUT = 600
 POLL_SECONDS = 60
 MAX_HOURS = 24
 
-SSH_OPTS = ["-o", "StrictHostKeyChecking=accept-new", "-o", "ConnectTimeout=10"]
+SSH_OPTS = [
+    "-o", "StrictHostKeyChecking=no",
+    "-o", "UserKnownHostsFile=/dev/null",
+    "-o", "LogLevel=ERROR",
+    "-o", "ConnectTimeout=10",
+]
 
 
 def apply_ssh_key_from_env():
@@ -90,7 +95,9 @@ def main():
     if not env_file.exists():
         sys.exit(f"{env_file} not found. Create it with RUNPOD_API_KEY=<key>.")
     load_dotenv(env_file)
-    runpod.api_key = os.environ["RUNPOD_API_KEY"]
+    runpod.api_key = os.environ.get("RUNPOD_API_KEY")
+    if not runpod.api_key:
+        sys.exit(f"RUNPOD_API_KEY missing in {env_file}.")
     apply_ssh_key_from_env()
 
     if not (DATA_DIR / "so101_ball_in_roll").exists():
@@ -121,13 +128,16 @@ def main():
             sys.exit(f"Install failed:\n{install.stderr[-2000:]}")
 
         print(f"Starting training ({args.steps} steps, batch {args.batch_size})...")
-        run_ssh(
+        start = run_ssh(
             ip,
             port,
             f"cd {REMOTE_DIR} && rm -f EXIT && "
             f"nohup bash -c 'python train_policy.py {args.steps} {args.batch_size} "
             f"> train.log 2>&1; echo $? > EXIT' >/dev/null 2>&1 &",
+            capture=True,
         )
+        if start.returncode != 0:
+            sys.exit(f"Failed to start training:\n{start.stderr}")
         wait_for_training(ip, port)
 
         print("Training finished, downloading checkpoint...")
