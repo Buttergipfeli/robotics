@@ -35,11 +35,11 @@ def run_ssh(ip, port, command, capture=False):
     )
 
 
-def run_rsync(ip, port, sources, destination):
-    subprocess.run(
-        ["rsync", "-az", "-e", f"ssh -p {port} {' '.join(SSH_OPTS)}", *sources, destination],
-        check=True,
-    )
+def run_rsync(ip, port, sources, destination, delete=False):
+    command = ["rsync", "-az", "-e", f"ssh -p {port} {' '.join(SSH_OPTS)}"]
+    if delete:
+        command.append("--delete")
+    subprocess.run([*command, *sources, destination], check=True)
 
 
 def wait_for_ssh(pod_id):
@@ -53,27 +53,21 @@ def wait_for_ssh(pod_id):
                 if run_ssh(ip, port, "true").returncode == 0:
                     return ip, port
         time.sleep(10)
-    sys.exit("Pod did not become reachable via SSH, terminate it in the RunPod console.")
+    sys.exit("Pod did not become reachable via SSH.")
 
 
 def wait_for_training(ip, port):
     deadline = time.time() + MAX_HOURS * 3600
     while time.time() < deadline:
         time.sleep(POLL_SECONDS)
-        done = run_ssh(ip, port, f"test -f {REMOTE_DIR}/DONE && echo yes", capture=True)
-        if done.stdout.strip() == "yes":
+        exit_code = run_ssh(ip, port, f"cat {REMOTE_DIR}/EXIT 2>/dev/null", capture=True).stdout.strip()
+        if exit_code == "0":
             return
-        status = run_ssh(
-            ip,
-            port,
-            f"pgrep -f train_policy.py >/dev/null && tail -1 {REMOTE_DIR}/train.log || echo TRAINING_DEAD",
-            capture=True,
-        )
-        line = status.stdout.strip()
-        if line == "TRAINING_DEAD":
+        if exit_code:
             log_tail = run_ssh(ip, port, f"tail -30 {REMOTE_DIR}/train.log", capture=True)
-            sys.exit(f"Training process died. Last log lines:\n{log_tail.stdout}")
-        print(f"waiting... {line}")
+            sys.exit(f"Training failed with exit code {exit_code}. Last log lines:\n{log_tail.stdout}")
+        progress = run_ssh(ip, port, f"tail -1 {REMOTE_DIR}/train.log 2>/dev/null", capture=True)
+        print(f"waiting... {progress.stdout.strip()}")
     sys.exit(f"Timeout after {MAX_HOURS}h.")
 
 
@@ -120,15 +114,15 @@ def main():
         run_ssh(
             ip,
             port,
-            f"cd {REMOTE_DIR} && rm -f DONE && "
+            f"cd {REMOTE_DIR} && rm -f EXIT && "
             f"nohup bash -c 'python train_policy.py {args.steps} {args.batch_size} "
-            f"> train.log 2>&1; touch DONE' >/dev/null 2>&1 &",
+            f"> train.log 2>&1; echo $? > EXIT' >/dev/null 2>&1 &",
         )
         wait_for_training(ip, port)
 
         print("Training finished, downloading checkpoint...")
         LOCAL_TRAIN_DIR.mkdir(parents=True, exist_ok=True)
-        run_rsync(ip, port, [f"root@{ip}:{REMOTE_DIR}/train/act_ball"], f"{LOCAL_TRAIN_DIR}/")
+        run_rsync(ip, port, [f"root@{ip}:{REMOTE_DIR}/train/act_ball"], f"{LOCAL_TRAIN_DIR}/", delete=True)
         print(f"Checkpoint at {LOCAL_TRAIN_DIR}/act_ball/checkpoints/last/")
         print("Next: ./.venv/bin/python3 lerobot/sim/eval_policy.py 50")
     finally:
