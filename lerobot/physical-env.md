@@ -86,3 +86,19 @@ expert and to any policy at evaluation time.
 Ball and roll positions are re-sampled every episode as described above.
 Randomisation runs by mutating the compiled model at reset time, so no
 recompilation is needed.
+
+## Real robot joint mapping
+
+The real follower reports joints in its own calibration units (recorded range
+mapped to ±100), the sim in MJCF-range units. `lerobot/real/joint_mapping.py`
+converts at the robot boundary: real units → encoder ticks → degrees from the
+calibration middle → MJCF degrees (per-joint `JOINT_OFFSETS_DEG` in
+`real_config.py`) → sim units, and back for actions. Policies, `REST_ACTION`
+and everything else in the real scripts are in sim units.
+
+The offsets are the MJCF angle of the pose held as calibration middle, so they
+belong to one calibration and must be re-measured after recalibrating: put the
+arm by hand into the sim rest pose, read the raw encoder ticks and compare the
+degrees from the calibration middle with the rest pose angles. For
+shoulder_lift and elbow_flex the mechanical stops coincide with the MJCF
+limits, so their offsets follow from the calibration ranges alone.

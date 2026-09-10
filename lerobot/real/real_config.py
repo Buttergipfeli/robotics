@@ -24,6 +24,7 @@ CONTROL_HZ = 10
 TELEOP_HZ = 50
 JOINT_NAMES = ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"]
 REST_ACTION = [0.0, -100.0, 93.8, 73.5, -58.0, 0.0]
+JOINT_OFFSETS_DEG = [-2.0, -22.0, 11.0, 6.0, 78.0, -33.0]
 
 MAX_RELATIVE_TARGET = 20.0
 
