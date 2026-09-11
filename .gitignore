@@ -11,3 +11,4 @@ lerobot/sim/data/
 lerobot/sim/train/
 lerobot/sim/*.png
 outputs/captured_images/*
+outputs/rollout_debug/*
