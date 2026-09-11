@@ -13,7 +13,8 @@ from sim_env import So101PickBallEnv
 
 SIM_DIR = Path(__file__).parent
 
-CHECKPOINTS_DIR = SIM_DIR / "train" / "act_ball" / "checkpoints"
+TRAIN_DIR = SIM_DIR / "train"
+DEFAULT_RUN = "act_ball"
 DEFAULT_CHECKPOINT = "last"
 DEVICE = "mps"
 DEFAULT_EPISODES = 20
@@ -29,18 +30,19 @@ def obs_to_raw(obs):
     }
 
 
-def checkpoint_dir(name=DEFAULT_CHECKPOINT):
+def checkpoint_dir(name=DEFAULT_CHECKPOINT, run=DEFAULT_RUN):
     if name.isdigit():
         name = f"{int(name):06d}"
-    path = (Path(name) if "/" in name else CHECKPOINTS_DIR / name) / "pretrained_model"
+    path = (Path(name) if "/" in name else TRAIN_DIR / run / "checkpoints" / name) / "pretrained_model"
     if not path.exists():
         sys.exit(f"Checkpoint not found: {path}")
     return path
 
 
-def load_policy(checkpoint=DEFAULT_CHECKPOINT):
-    path = checkpoint_dir(checkpoint)
-    print(f"Checkpoint {path.parent.resolve().name}")
+def load_policy(checkpoint=DEFAULT_CHECKPOINT, run=DEFAULT_RUN):
+    path = checkpoint_dir(checkpoint, run)
+    parts = path.parent.resolve().parts
+    print(f"Checkpoint {parts[-3]}/{parts[-1]}")
     policy = ACTPolicy.from_pretrained(str(path))
     policy.to(DEVICE)
     policy.eval()
@@ -52,8 +54,8 @@ def load_policy(checkpoint=DEFAULT_CHECKPOINT):
     return policy, preprocessor, postprocessor
 
 
-def main(episodes=DEFAULT_EPISODES, seed=DEFAULT_SEED, checkpoint=DEFAULT_CHECKPOINT):
-    policy, preprocessor, postprocessor = load_policy(checkpoint)
+def main(episodes=DEFAULT_EPISODES, seed=DEFAULT_SEED, checkpoint=DEFAULT_CHECKPOINT, run=DEFAULT_RUN):
+    policy, preprocessor, postprocessor = load_policy(checkpoint, run)
 
     env = So101PickBallEnv(build_model(), seed=seed)
 
@@ -83,5 +85,6 @@ if __name__ == "__main__":
     parser.add_argument("episodes", type=int, nargs="?", default=DEFAULT_EPISODES)
     parser.add_argument("seed", type=int, nargs="?", default=DEFAULT_SEED)
     parser.add_argument("--checkpoint", default=DEFAULT_CHECKPOINT)
+    parser.add_argument("--run", default=DEFAULT_RUN)
     args = parser.parse_args()
-    main(episodes=args.episodes, seed=args.seed, checkpoint=args.checkpoint)
+    main(episodes=args.episodes, seed=args.seed, checkpoint=args.checkpoint, run=args.run)

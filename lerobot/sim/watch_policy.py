@@ -6,12 +6,12 @@ import mujoco.viewer
 import torch
 
 from build_scene import build_model
-from eval_policy import DEFAULT_CHECKPOINT, load_policy, obs_to_raw
+from eval_policy import DEFAULT_CHECKPOINT, DEFAULT_RUN, load_policy, obs_to_raw
 from sim_env import So101PickBallEnv
 
 
-def main(episodes=10, seed=100, checkpoint=DEFAULT_CHECKPOINT):
-    policy, preprocessor, postprocessor = load_policy(checkpoint)
+def main(episodes=10, seed=100, checkpoint=DEFAULT_CHECKPOINT, run=DEFAULT_RUN):
+    policy, preprocessor, postprocessor = load_policy(checkpoint, run)
 
     env = So101PickBallEnv(build_model(), seed=seed)
     tick = 1.0 / env.CONTROL_HZ
@@ -50,5 +50,6 @@ if __name__ == "__main__":
     parser.add_argument("episodes", type=int, nargs="?", default=10)
     parser.add_argument("seed", type=int, nargs="?", default=100)
     parser.add_argument("--checkpoint", default=DEFAULT_CHECKPOINT)
+    parser.add_argument("--run", default=DEFAULT_RUN)
     args = parser.parse_args()
-    main(episodes=args.episodes, seed=args.seed, checkpoint=args.checkpoint)
+    main(episodes=args.episodes, seed=args.seed, checkpoint=args.checkpoint, run=args.run)

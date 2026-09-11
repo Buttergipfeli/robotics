@@ -101,10 +101,10 @@ Afterwards, evaluate locally:
 ./.venv/bin/python3 lerobot/sim/eval_policy.py 50
 ```
 
-`--checkpoint 20000` evaluates an intermediate checkpoint instead of `last`, a
-path such as `--checkpoint lerobot/sim/train/act_ball_run2/checkpoints/020000`
-one from another run; `watch_policy.py` and `real/rollout_policy.py` take the
-same option.
+`--checkpoint 20000` evaluates an intermediate checkpoint instead of `last`,
+`--run <folder>` one from another training folder under `lerobot/sim/train/`
+(default `act_ball`); `--checkpoint` also accepts a full path. `watch_policy.py`
+and `real/rollout_policy.py` take the same options.
 
 ## Manual fallback over plain SSH
 
