@@ -25,7 +25,7 @@ REMOTE_DIR = "/workspace/so101"
 REMOTE_CHECKPOINTS = f"{REMOTE_DIR}/train/act_ball/checkpoints"
 REMOTE_PYTHON = "/workspace/venv/bin/python"
 TORCH_CUDA_INDEX = "https://download.pytorch.org/whl/cu128"
-SSH_READY_TIMEOUT = 420
+SSH_READY_TIMEOUT = 900
 POLL_SECONDS = 60
 MAX_HOURS = 24
 
