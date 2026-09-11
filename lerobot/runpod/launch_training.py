@@ -34,6 +34,8 @@ SSH_OPTS = [
     "-o", "UserKnownHostsFile=/dev/null",
     "-o", "LogLevel=ERROR",
     "-o", "ConnectTimeout=10",
+    "-o", "ServerAliveInterval=15",
+    "-o", "ServerAliveCountMax=4",
 ]
 
 
@@ -178,8 +180,8 @@ def main():
             ip,
             port,
             f"cd {REMOTE_DIR} && rm -f EXIT && "
-            f"nohup bash -c '{REMOTE_PYTHON} train_policy.py {args.steps} {args.batch_size} "
-            f"> train.log 2>&1; echo $? > EXIT' >/dev/null 2>&1 &",
+            f"(nohup bash -c '{REMOTE_PYTHON} train_policy.py {args.steps} {args.batch_size} "
+            f"> train.log 2>&1; echo $? > EXIT' </dev/null >/dev/null 2>&1 &)",
             capture=True,
         )
         if start.returncode != 0:
