@@ -101,6 +101,11 @@ Afterwards, evaluate locally:
 ./.venv/bin/python3 lerobot/sim/eval_policy.py 50
 ```
 
+`--checkpoint 20000` evaluates an intermediate checkpoint instead of `last`, a
+path such as `--checkpoint lerobot/sim/train/act_ball_run2/checkpoints/020000`
+one from another run; `watch_policy.py` and `real/rollout_policy.py` take the
+same option.
+
 ## Manual fallback over plain SSH
 
 If you ever need to do it by hand: deploy any pod with a PyTorch/CUDA template

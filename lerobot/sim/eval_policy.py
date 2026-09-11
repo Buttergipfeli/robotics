@@ -1,3 +1,4 @@
+import argparse
 import sys
 from pathlib import Path
 
@@ -12,7 +13,8 @@ from sim_env import So101PickBallEnv
 
 SIM_DIR = Path(__file__).parent
 
-CHECKPOINT = SIM_DIR / "train" / "act_ball" / "checkpoints" / "last" / "pretrained_model"
+CHECKPOINTS_DIR = SIM_DIR / "train" / "act_ball" / "checkpoints"
+DEFAULT_CHECKPOINT = "last"
 DEVICE = "mps"
 DEFAULT_EPISODES = 20
 DEFAULT_SEED = 100
@@ -27,20 +29,31 @@ def obs_to_raw(obs):
     }
 
 
-def load_policy():
-    policy = ACTPolicy.from_pretrained(str(CHECKPOINT))
+def checkpoint_dir(name=DEFAULT_CHECKPOINT):
+    if name.isdigit():
+        name = f"{int(name):06d}"
+    path = (Path(name) if "/" in name else CHECKPOINTS_DIR / name) / "pretrained_model"
+    if not path.exists():
+        sys.exit(f"Checkpoint not found: {path}")
+    return path
+
+
+def load_policy(checkpoint=DEFAULT_CHECKPOINT):
+    path = checkpoint_dir(checkpoint)
+    print(f"Checkpoint {path.parent.resolve().name}")
+    policy = ACTPolicy.from_pretrained(str(path))
     policy.to(DEVICE)
     policy.eval()
     preprocessor, postprocessor = make_pre_post_processors(
         policy.config,
-        pretrained_path=str(CHECKPOINT),
+        pretrained_path=str(path),
         preprocessor_overrides={"device_processor": {"device": DEVICE}},
     )
     return policy, preprocessor, postprocessor
 
 
-def main(episodes=DEFAULT_EPISODES, seed=DEFAULT_SEED):
-    policy, preprocessor, postprocessor = load_policy()
+def main(episodes=DEFAULT_EPISODES, seed=DEFAULT_SEED, checkpoint=DEFAULT_CHECKPOINT):
+    policy, preprocessor, postprocessor = load_policy(checkpoint)
 
     env = So101PickBallEnv(build_model(), seed=seed)
 
@@ -66,6 +79,9 @@ def main(episodes=DEFAULT_EPISODES, seed=DEFAULT_SEED):
 
 
 if __name__ == "__main__":
-    episodes = int(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_EPISODES
-    seed = int(sys.argv[2]) if len(sys.argv) > 2 else DEFAULT_SEED
-    main(episodes=episodes, seed=seed)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("episodes", type=int, nargs="?", default=DEFAULT_EPISODES)
+    parser.add_argument("seed", type=int, nargs="?", default=DEFAULT_SEED)
+    parser.add_argument("--checkpoint", default=DEFAULT_CHECKPOINT)
+    args = parser.parse_args()
+    main(episodes=args.episodes, seed=args.seed, checkpoint=args.checkpoint)

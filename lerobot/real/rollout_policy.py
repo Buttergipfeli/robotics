@@ -1,3 +1,4 @@
+import argparse
 import sys
 import time
 from pathlib import Path
@@ -11,7 +12,8 @@ from lerobot.policies.factory import make_pre_post_processors
 from joint_mapping import JointMapping
 from real_config import CONTROL_HZ, JOINT_NAMES, REST_ACTION, make_follower
 
-CHECKPOINT = Path(__file__).parents[1] / "sim" / "train" / "act_ball" / "checkpoints" / "last" / "pretrained_model"
+CHECKPOINTS_DIR = Path(__file__).parents[1] / "sim" / "train" / "act_ball" / "checkpoints"
+DEFAULT_CHECKPOINT = "last"
 DEVICE = "mps"
 EPISODE_SECONDS = 30
 REST_SECONDS = 3.0
@@ -41,13 +43,24 @@ def move_to_rest(robot, mapping):
         time.sleep(1 / CONTROL_HZ)
 
 
-def main(episodes=1):
-    policy = ACTPolicy.from_pretrained(str(CHECKPOINT))
+def checkpoint_dir(name=DEFAULT_CHECKPOINT):
+    if name.isdigit():
+        name = f"{int(name):06d}"
+    path = (Path(name) if "/" in name else CHECKPOINTS_DIR / name) / "pretrained_model"
+    if not path.exists():
+        sys.exit(f"Checkpoint not found: {path}")
+    return path
+
+
+def main(episodes=1, checkpoint=DEFAULT_CHECKPOINT):
+    path = checkpoint_dir(checkpoint)
+    print(f"Checkpoint {path.parent.resolve().name}")
+    policy = ACTPolicy.from_pretrained(str(path))
     policy.to(DEVICE)
     policy.eval()
     preprocessor, postprocessor = make_pre_post_processors(
         policy.config,
-        pretrained_path=str(CHECKPOINT),
+        pretrained_path=str(path),
         preprocessor_overrides={"device_processor": {"device": DEVICE}},
     )
 
@@ -77,5 +90,8 @@ def main(episodes=1):
 
 
 if __name__ == "__main__":
-    episodes = int(sys.argv[1]) if len(sys.argv) > 1 else 1
-    main(episodes=episodes)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("episodes", type=int, nargs="?", default=1)
+    parser.add_argument("--checkpoint", default=DEFAULT_CHECKPOINT)
+    args = parser.parse_args()
+    main(episodes=args.episodes, checkpoint=args.checkpoint)
