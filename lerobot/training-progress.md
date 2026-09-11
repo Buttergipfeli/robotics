@@ -1,16 +1,20 @@
 # Training progress
 
-| | Run 1 | Run 2 |
-| --- | --- | --- |
-| Data | 50 expert episodes, fixed scene | 300 expert episodes, domain randomisation (mat offset, ball friction and mass, camera pose and fov, lighting, mat and paper shade) |
-| Training | ACT, 20k steps, batch 8, Mac (MPS) | ACT, 20k of 50k steps, batch 32, RunPod RTX 5090, loss 5.36 → 0.20 |
-| Sim eval, seed 100, 20 episodes | 11/20 (5 timeouts, 4 ball lost), no randomisation | 11/20 (7 timeouts, 2 ball lost), with randomisation |
-| Real rollout | lifts, opens gripper, then oscillates ±1 cm | no coherent behaviour |
+| | Run 1 | Run 2 | Run 3 |
+| --- | --- | --- | --- |
+| Data | 50 expert episodes, fixed scene | 300 expert episodes, domain randomisation (mat offset, ball friction and mass, camera pose and fov, lighting, mat and paper shade) | 300 expert episodes, run 2 randomisation plus appearance: ball colour and markings, speckled cork, floor shade, camera exposure, white balance, noise and blur; colours matched to a real frame |
+| Training | ACT, 20k steps, batch 8, Mac (MPS) | ACT, 20k of 50k steps, batch 32, RunPod RTX 5090, loss 5.36 → 0.20 | ACT, 50k steps, batch 32, RunPod RTX 5090; evaluated at the 20k checkpoint while training |
+| Sim eval, seed 100, 20 episodes | 11/20 (5 timeouts, 4 ball lost), no randomisation | 11/20 (7 timeouts, 2 ball lost), with randomisation | 8/20 at 20k (9 timeouts, 3 ball lost), with full randomisation |
+| Real rollout | lifts, opens gripper, then oscillates ±1 cm | no coherent behaviour | pending |
 
 ## Findings
 
 - Same rate on a harder test. Run 2 holds the ball more reliably and fails by not
   finding it; all three balls near the far mat edge (x ≥ 0.34 m) timed out.
+- Run 3 at 20k drops to 8/20 under the much harder appearance randomisation,
+  again mostly timeouts. Its seed-100 scenes differ from runs 1 and 2 (more
+  random draws per reset), so episodes are not comparable one to one; the 50k
+  checkpoint of run 3 is the new baseline.
 - Both real rollouts failed for reasons outside the policy:
   1. Joint units differed: sim normalises over MJCF ranges, the follower over its
      calibration ranges (wrist roll 78° off). Fixed by `real/joint_mapping.py`.
