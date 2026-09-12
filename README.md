@@ -5,6 +5,9 @@ LeRobot SO-101 arm. The task: pick a stress ball off a cork mat and place it on
 top of a toilet paper roll, observed by a single wrist camera. Policies are
 trained on simulated demonstrations only and transferred to the real arm.
 
+Status: work in progress. Training runs and results are tracked in
+`lerobot/training-progress.md`.
+
 ## Layout
 
 | Path | Content |
