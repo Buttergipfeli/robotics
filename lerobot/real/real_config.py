@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 ENV_FILE = Path(__file__).parent / ".env"
 if not ENV_FILE.exists():
     raise RuntimeError(
-        f"{ENV_FILE} not found. Copy .env.example to .env and fill in your ports."
+        f"{ENV_FILE} not found. Copy env.example to .env and fill in your ports."
     )
 load_dotenv(ENV_FILE)
 

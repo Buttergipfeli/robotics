@@ -41,7 +41,9 @@ EOF
 ```
 
 The file is gitignored. Treat the key like a password, it has full account
-access.
+access. If your RunPod key is not the default `~/.ssh/id_ed25519`, add
+`RUNPOD_SSH_KEY=~/.ssh/<your-key>` to the same file; `lerobot/runpod/env.example`
+lists both variables.
 
 ### 3. Credits
 

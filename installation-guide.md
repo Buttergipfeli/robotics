@@ -1,43 +1,45 @@
-# Pyhton Installation Guide
+# Installation guide
 
-## Install Python via `uv`
-
-Install the python version 3.13:
+## Python via `uv`
 
 ```bash
 uv python install 3.13
 ```
 
-After that set up venv with pip in it:
-
 ```bash
 uv venv --python 3.13 --seed
 ```
-
-Activate venv:
 
 ```bash
 source ./.venv/bin/activate
 ```
 
-## Install packages
+## Packages
 
-### mujoco
+All direct dependencies are pinned in `requirements.txt` to the versions this
+project was developed and tested with:
 
 ```bash
-pip install mujoco
+pip install -r requirements.txt
 ```
 
-### lerobot
+## SO-101 model
 
-Clone the lerobot repository
+The scene includes the SO-101 model from the SO-ARM100 repository. Clone it
+into `lerobot/SO-ARM100/`, the path the scene expects:
 
 ```bash
-git clone --depth 1 https://github.com/TheRobotStudio/SO-ARM100.git
+git clone --depth 1 https://github.com/TheRobotStudio/SO-ARM100.git lerobot/SO-ARM100
 ```
 
-## Start the MuJoCo viewer
+## Check the setup
 
 ```bash
-python -m mujoco.viewer --mjcf=SO-ARM100/Simulation/SO101/scene.xml
+./.venv/bin/python3 lerobot/sim/test_expert.py 3
+```
+
+Interactive viewers need `mjpython` on macOS:
+
+```bash
+./.venv/bin/mjpython lerobot/sim/watch_expert.py
 ```
