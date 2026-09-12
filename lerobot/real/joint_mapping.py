@@ -14,6 +14,7 @@ MJCF_JOINT_RANGES_RAD = {
 }
 NORM_LO = np.array([-100.0, -100.0, -100.0, -100.0, -100.0, 0.0])
 NORM_SPAN = np.array([200.0, 200.0, 200.0, 200.0, 200.0, 100.0])
+RANGE_MARGIN = 4.0
 
 
 class JointMapping:
@@ -33,4 +34,4 @@ class JointMapping:
         mjcf_deg = self.mjcf_lo + (np.asarray(sim) - NORM_LO) / NORM_SPAN * (self.mjcf_hi - self.mjcf_lo)
         ticks = TICKS_MIDDLE + (mjcf_deg + self.offsets) * TICKS_PER_TURN / 360.0
         real = NORM_LO + (ticks - self.ticks_min) / (self.ticks_max - self.ticks_min) * NORM_SPAN
-        return np.clip(real, NORM_LO, NORM_LO + NORM_SPAN)
+        return np.clip(real, NORM_LO + RANGE_MARGIN, NORM_LO + NORM_SPAN - RANGE_MARGIN)
